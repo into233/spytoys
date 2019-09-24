@@ -3,12 +3,14 @@
 #define PI 3.14159
 #define LENGTH_NAME_BMP 30
 #define _CRT_SECURE_NO_WARNINGS
+#define CHAR_NUM 16
 
 using namespace std;
 
 BITMAPFILEHEADER strHead;
 RGBQUAD strPla[256];
 BITMAPINFOHEADER strInfo;
+
 
 void showBmpHead(BITMAPFILEHEADER pBmpHead) {
 	cout << "位图文件头：" << endl;
@@ -192,7 +194,7 @@ int savePic(FILE *fpw, char output_filename[], IMAGEDATA *imagedata) {
 	cout << "done!";
 	return 1;
 }
-int bitManipulation(unsigned char n, unsigned char m, int i) {
+int bitManipulation0(unsigned char n, unsigned char m, int i) {
 	int temp = m >> i & 1;
 	if (temp == 1)
 		return n | (temp << i);
@@ -201,8 +203,29 @@ int bitManipulation(unsigned char n, unsigned char m, int i) {
 		temp = 1;
 		return n & (~(temp << i));
 	}
-
 }
+
+int bitManipulation(unsigned char des, unsigned char src, int i) {
+	int temp = src >> i & 1;
+	if (temp == 1)
+		return des | temp;
+	else
+	{
+		temp = 1;
+		return des & (~temp);
+	}
+}
+int bitManipulation_reverse(unsigned char n, unsigned char m, int i) {
+	int temp = m  & 1;
+	if (temp == 1)
+		return n |(temp << i);
+	else
+	{
+		temp = 1;
+		return n & (~(temp << i));
+	}
+}
+
 int lowestBitReplace(char origin_Filename[], char output_filename[], IMAGEDATA *imagedata) {
 	FILE *fpi = fopen(origin_Filename, "rb");
 	FILE *fpw = nullptr;
@@ -233,18 +256,24 @@ int lowestBitReplace(char origin_Filename[], char output_filename[], IMAGEDATA *
 	fread(imagedata, sizeof(struct tagIMAGEDATA) * width, height, fpi);
 
 	//设置最大16位的加密位
-	char crypto[65535] = { 0 };
+	char crypto[CHAR_NUM * 16] = { 0 };
 	cout << "请输入加密字符串: ";
-	//cin >> crypto;
-	crypto[0] = '1';
-	crypto[1] = '1';
-	crypto[2] = '1';
+	cin.getline(crypto, CHAR_NUM * 16);
 	BYTE shift_bits = 0x00;
 	int j = 0;
 	int string_len = strlen(crypto);
 
-	//1个字符要8个BYTE, 也就是8/3 = 2.667个颜色
-	for (int i = 0;; ++i) {
+	//数量
+	for (int i = 0; i < CHAR_NUM; ++i) {
+		imagedata[i].blue = bitManipulation(imagedata[i].blue, string_len, shift_bits++);
+		if (shift_bits == CHAR_NUM) {
+			break;
+		}
+		imagedata[i].green = bitManipulation(imagedata[i].green, string_len, shift_bits++);
+		imagedata[i].red = bitManipulation(imagedata[i].red, string_len, shift_bits++);
+	}
+	shift_bits = 0x00;
+	for (int i = CHAR_NUM;; ++i) {
 		imagedata[i].blue = bitManipulation(imagedata[i].blue, crypto[j], shift_bits);
 		if (++shift_bits == 8) {
 			shift_bits = 0;
@@ -273,7 +302,6 @@ int lowestBitReplace(char origin_Filename[], char output_filename[], IMAGEDATA *
 
 int read_encript_pic(char origin_Filename[], IMAGEDATA *imagedata) {
 	FILE *fpi = fopen(origin_Filename, "rb");
-	FILE *fpw;
 	int width, height;
 	if (fpi != NULL) {
 		readImageData(fpi);
@@ -302,36 +330,45 @@ int read_encript_pic(char origin_Filename[], IMAGEDATA *imagedata) {
 
 	//设置最大16位的加密位
 	char crypto[65535] = { 0 };
-	cout << "请输入加密字符串: ";
-	//cin >> crypto;
-	crypto[0] = '1';
-	crypto[1] = '1';
-	crypto[2] = '1';
+	int string_len = 0;
+
 	BYTE shift_bits = 0x00;
 	int j = 0;
-	int string_len = strlen(crypto);
+	string_len = strlen(crypto);
+
+	//数量
+	for (int i = 0; i < CHAR_NUM; ++i) {
+		string_len = bitManipulation_reverse(string_len, imagedata[i].blue, shift_bits++);
+		if (shift_bits == CHAR_NUM) {
+			break;
+		}
+		string_len = bitManipulation_reverse(string_len, imagedata[i].green, shift_bits++);
+		string_len = bitManipulation_reverse(string_len, imagedata[i].red, shift_bits++);
+	}
+	shift_bits = 0x00;
 
 	//1个字符要8个BYTE, 也就是8/3 = 2.667个颜色
-	for (int i = 0;; ++i) {
-		imagedata[i].blue = bitManipulation(imagedata[i].blue, crypto[j], shift_bits);
+	for (int i = CHAR_NUM;; ++i) {
+		crypto[j] = bitManipulation_reverse(crypto[j], imagedata[i].blue, shift_bits);
 		if (++shift_bits == 8) {
 			shift_bits = 0;
-			if (crypto[++j] == '\0')
+			if (++j >= string_len)
 				break;
 		}
-		imagedata[i].green = bitManipulation(imagedata[i].green, crypto[j], shift_bits);
+		crypto[j] = bitManipulation_reverse(crypto[j], imagedata[i].green, shift_bits);
 		if (++shift_bits == 8) {
 			shift_bits = 0;
-			if (crypto[++j] == '\0')
+			if (++j >= string_len)
 				break;
 		}
-		imagedata[i].red = bitManipulation(imagedata[i].red, crypto[j], shift_bits);
+		crypto[j] = bitManipulation_reverse(crypto[j], imagedata[i].red, shift_bits);
 		if (++shift_bits == 8) {
 			shift_bits = 0;
-			if (crypto[++j] == '\0')
+			if (++j >= string_len)
 				break;
 		}
 	}
+	cout << "加密后的密文为:" << crypto << endl;
 	fclose(fpi);
 	return 0;
 }
@@ -347,8 +384,8 @@ int main() {
 	cout << "请输入所要读取文件名：" << endl;
 	cin >> strFile;*/
 	//rotateBMPimage(strFile, imagedata, imagedataRot);
-	lowestBitReplace("bkg.bmp", "bkg_cpto.bmp", imagedata);
-
+	//lowestBitReplace("bkg.bmp", "bkg_cpto.bmp", imagedata);
+	read_encript_pic("bkg_cpto.bmp", imagedata);
 
 	getchar();
 	getchar();
