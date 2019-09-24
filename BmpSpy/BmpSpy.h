@@ -49,3 +49,5 @@ typedef struct tagIMAGEDATA {
 	BYTE green;
 	BYTE red;
 }IMAGEDATA;
+
+int initPla(FILE *fpi);

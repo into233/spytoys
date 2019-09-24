@@ -32,17 +32,11 @@ void showBmpInfoHead(tagBITMAPINFOHEADER pBmpinfoHead) {
 	cout <<"使用的颜色数: \n"<< pBmpinfoHead.biClrUsed<< endl;
 	cout <<"重要颜色数: \n"<< pBmpinfoHead.biClrImportant<< endl;
 }
-int main() {
-	char strFile[LENGTH_NAME_BMP];
-	IMAGEDATA *imagedata = nullptr;
-	IMAGEDATA *imagedataRot = nullptr;
-
+int rotateBMPimage(char filename[], IMAGEDATA *imagedata, IMAGEDATA *imagedataRot) {
 	int width, height;
-
-	cout << "请输入所要读取文件名：" << endl;
-	cin >> strFile;
-	FILE *fpi, *fpw;
-	fpi = fopen(strFile, "rb");
+	FILE *fpw;
+	FILE *fpi;
+	fpi = fopen(filename, "rb");
 	if (fpi != NULL) {
 		WORD bftype;
 		fread(&bftype, 1, sizeof(WORD), fpi);
@@ -57,24 +51,20 @@ int main() {
 		fread(&strInfo, 1, sizeof(tagBITMAPINFOHEADER), fpi);
 		showBmpInfoHead(strInfo);
 
-		for (unsigned int nCounti = 0; nCounti < strInfo.biClrUsed; nCounti++) {
-			fread((char *)&(strPla[nCounti].rgbBlue), 1, sizeof(BYTE), fpi);
-			fread((char *)&(strPla[nCounti].rgbGreen), 1, sizeof(BYTE), fpi);
-			fread((char *)&(strPla[nCounti].rgbRed), 1, sizeof(BYTE), fpi);
-			fread((char *)&(strPla[nCounti].rgbReserved), 1, sizeof(BYTE), fpi);
-		}
+		initPla(fpi);
 		width = strInfo.biWidth;
 		height = strInfo.biHeight;
 
+		//+3是为了不少...
 		width = (width * sizeof(IMAGEDATA) + 3) / 4 * 4;
-		//imagedata = (IMAGEDATA*)malloc(width * height * sizeof(IMAGEDATA));
-		imagedata = (IMAGEDATA*)malloc(width * height);
+		imagedata = (IMAGEDATA*)malloc(width * height * sizeof(IMAGEDATA));
+		//imagedata = (IMAGEDATA*)malloc(width * height);
 		imagedataRot = (IMAGEDATA*)malloc(2 * width * 2 * height * sizeof(IMAGEDATA));
 		for (int i = 0; i < height; ++i) {
 			for (int j = 0; j < width; ++j) {
 				(*(imagedata + i * width + j)).blue = 0;
-//				(*(imagedata + i * width + j)).green = 0;
-//				(*(imagedata + i * width + j)).blue = 0;
+				(*(imagedata + i * width + j)).green = 0;
+				(*(imagedata + i * width + j)).blue = 0;
 			}
 		}
 		for (int i = 0; i < 2 * height; ++i) {
@@ -85,13 +75,281 @@ int main() {
 				(*(imagedataRot + i * 2 * width + j)).green = 0;
 			}
 		}
-		//fseed(fpi, 54, SEEK_SET);
-
+		//fseek(fpi, 54, SEEK_SET);+b+yy
+		fread(imagedata, sizeof(struct tagIMAGEDATA) * width, height, fpi);
 	}
-	
-	getchar();
-	getchar();
-	getchar();
+	else {
+		cout << "file open error!" << endl;
+		return NULL;
+	}
+
+	int RotateAngle;
+	double angle;
+	int midX_pre, midY_pre, midX_aft, midY_aft;
+	midX_pre = width / 2;
+	midY_pre = height / 2;
+	midX_aft = width;
+	midY_aft = height;
+
+	int pre_i, pre_j, after_i, after_j;
+	cout << "输入要旋转的角度(0-360, 逆时针旋转)";
+	cin >> RotateAngle;
+	angle = 1.0 * RotateAngle * PI / 180;
+	for (int i = 0; i < 2 * height; ++i)
+	{
+		for (int j = 0; j < 2 * width; ++j) {
+			after_i = i - midY_aft;
+			after_j = j - midX_aft;
+			pre_i = (int)(cos((double)angle) * after_i - sin((double)angle)*after_j) + midX_pre;
+			pre_j = (int)(sin((double)angle) * after_i + cos((double)angle)*after_j) + midY_pre;
+			if (pre_i >= 0 && pre_i < height && pre_j >= 0 && pre_j < width)
+				*(imagedataRot + i * 2 * width + j) = *(imagedata + pre_i * width + pre_j);
+		}
+	}
+	//save
+	if ((fpw = fopen("b.bmp", "wb")) == NULL) {
+		cout << "create the bmp file error!" << endl;
+		return NULL;
+	}
+	WORD bfType_w = 0x4d42;
+	fwrite(&bfType_w, 1, sizeof(WORD), fpw);
+	//fpw += 2;
+	fwrite(&strHead, 1, sizeof(tagBITMAPFILEHEADER), fpw);
+	strInfo.biWidth = 2 * strInfo.biWidth;
+	strInfo.biHeight = 2 * height;
+	fwrite(&strInfo, 1, sizeof(tagBITMAPINFOHEADER), fpw);
+	//save clolor palette
+	for (unsigned int nCounti = 0; nCounti < strInfo.biClrUsed; nCounti++) {
+		fwrite(&strPla[nCounti].rgbBlue, 1, sizeof(BYTE), fpw);
+		fwrite(&strPla[nCounti].rgbGreen, 1, sizeof(BYTE), fpw);
+		fwrite(&strPla[nCounti].rgbRed, 1, sizeof(BYTE), fpw);
+		fwrite(&strPla[nCounti].rgbReserved, 1, sizeof(BYTE), fpw);
+	}
+	for (int i = 0; i < 2 * height; ++i) {
+		for (int j = 0; j < 2 * width; ++j) {
+			fwrite(&((*(imagedataRot + i * 2 * width + j)).blue), 1, sizeof(BYTE), fpw);
+			fwrite(&((*(imagedataRot + i * 2 * width + j)).green), 1, sizeof(BYTE), fpw);
+			fwrite(&((*(imagedataRot + i * 2 * width + j)).red), 1, sizeof(BYTE), fpw);
+		}
+	}
+	fclose(fpw);
+	delete[] imagedata;
+	delete[] imagedataRot;
+	cout << "done!";
+}
+
+int readImageData(FILE *fpi) {
+	WORD bftype;
+	fread(&bftype, 1, sizeof(WORD), fpi);
+	if (0x4d42 != bftype)
+	{
+		cout << "the file is not a bmp file;" << endl;
+		return NULL;
+	}
+	//read bmp file filehead and infohead
+	fread(&strHead, 1, sizeof(tagBITMAPFILEHEADER), fpi);
+	fread(&strInfo, 1, sizeof(tagBITMAPINFOHEADER), fpi);
+	return 1;
+}
+int initPla(FILE *fpi) {
+	for (unsigned int nCounti = 0; nCounti < strInfo.biClrUsed; nCounti++) {
+		fread((char *)&(strPla[nCounti].rgbBlue), 1, sizeof(BYTE), fpi);
+		fread((char *)&(strPla[nCounti].rgbGreen), 1, sizeof(BYTE), fpi);
+		fread((char *)&(strPla[nCounti].rgbRed), 1, sizeof(BYTE), fpi);
+	}
+	return 1;
+}
+int savePic(FILE *fpw, char output_filename[], IMAGEDATA *imagedata) {
+	int width, height;
+
+	width = strInfo.biWidth;
+	height = strInfo.biHeight;
+
+	if ((fpw = fopen(output_filename, "wb")) == NULL) {
+		cout << "create the crpto bmp file error!" << endl;
+		return NULL;
+	}
+	WORD bfType_w = 0x4d42;
+	fwrite(&bfType_w, 1, sizeof(WORD), fpw);
+	fwrite(&strHead, 1, sizeof(tagBITMAPFILEHEADER), fpw);
+	fwrite(&strInfo, 1, sizeof(tagBITMAPINFOHEADER), fpw);
+	//save clolor palette
+	for (unsigned int nCounti = 0; nCounti < strInfo.biClrUsed; nCounti++) {
+		fwrite(&strPla[nCounti].rgbBlue, 1, sizeof(BYTE), fpw);
+		fwrite(&strPla[nCounti].rgbGreen, 1, sizeof(BYTE), fpw);
+		fwrite(&strPla[nCounti].rgbRed, 1, sizeof(BYTE), fpw);
+		fwrite(&strPla[nCounti].rgbReserved, 1, sizeof(BYTE), fpw);
+	}
+	for (int i = 0; i < height; ++i) {
+		for (int j = 0; j < width; ++j) {
+			fwrite(&((*(imagedata + i * width + j)).blue), 1, sizeof(BYTE), fpw);
+			fwrite(&((*(imagedata + i * width + j)).green), 1, sizeof(BYTE), fpw);
+			fwrite(&((*(imagedata + i * width + j)).red), 1, sizeof(BYTE), fpw);
+		}
+	}
+	fclose(fpw);
+	delete[] imagedata;
+	cout << "done!";
+	return 1;
+}
+int bitManipulation(unsigned char n, unsigned char m, int i) {
+	int temp = m >> i & 1;
+	if (temp == 1)
+		return n | (temp << i);
+	else
+	{
+		temp = 1;
+		return n & (~(temp << i));
+	}
+
+}
+int lowestBitReplace(char origin_Filename[], char output_filename[], IMAGEDATA *imagedata) {
+	FILE *fpi = fopen(origin_Filename, "rb");
+	FILE *fpw = nullptr;
+	int width, height;
+	if (fpi != NULL) {
+		readImageData(fpi);
+		showBmpInfoHead(strInfo);
+		showBmpHead(strHead);
+	}
+	else {
+		cout << "file open error!" << endl;
+		return -1;
+	}
+	initPla(fpi);
+	width = strInfo.biWidth;
+	height = strInfo.biHeight;
+
+	imagedata = (IMAGEDATA*)malloc(width * height * sizeof(IMAGEDATA));
+	//imagedata = (IMAGEDATA*)malloc(width * height);
+	for (int i = 0; i < height; ++i) {
+		for (int j = 0; j < width; ++j) {
+			(*(imagedata + i * width + j)).blue = 0;
+			(*(imagedata + i * width + j)).green = 0;
+			(*(imagedata + i * width + j)).blue = 0;
+		}
+	}
+	//fseek(fpi, 54, SEEK_SET);+b+yy
+	fread(imagedata, sizeof(struct tagIMAGEDATA) * width, height, fpi);
+
+	//设置最大16位的加密位
+	char crypto[65535] = { 0 };
+	cout << "请输入加密字符串: ";
+	//cin >> crypto;
+	crypto[0] = '1';
+	crypto[1] = '1';
+	crypto[2] = '1';
+	BYTE shift_bits = 0x00;
+	int j = 0;
+	int string_len = strlen(crypto);
+
+	//1个字符要8个BYTE, 也就是8/3 = 2.667个颜色
+	for (int i = 0;; ++i) {
+		imagedata[i].blue = bitManipulation(imagedata[i].blue, crypto[j], shift_bits);
+		if (++shift_bits == 8) {
+			shift_bits = 0;
+			if (crypto[++j] == '\0')
+				break;
+		}
+		imagedata[i].green = bitManipulation(imagedata[i].green, crypto[j], shift_bits);
+		if (++shift_bits == 8) {
+			shift_bits = 0;
+			if (crypto[++j] == '\0')
+				break;
+		}
+		imagedata[i].red = bitManipulation(imagedata[i].red, crypto[j], shift_bits);
+		if (++shift_bits == 8) {
+			shift_bits = 0;
+			if (crypto[++j] == '\0')
+				break;
+		}
+	}
+	fclose(fpi);
+	if (savePic(fpw, output_filename, imagedata)) {
+		return 1;
+	}
+	return 0;
+}
+
+int read_encript_pic(char origin_Filename[], IMAGEDATA *imagedata) {
+	FILE *fpi = fopen(origin_Filename, "rb");
+	FILE *fpw;
+	int width, height;
+	if (fpi != NULL) {
+		readImageData(fpi);
+		showBmpInfoHead(strInfo);
+		showBmpHead(strHead);
+	}
+	else {
+		cout << "file open error!" << endl;
+		return -1;
+	}
+	initPla(fpi);
+	width = strInfo.biWidth;
+	height = strInfo.biHeight;
+
+	imagedata = (IMAGEDATA*)malloc(width * height * sizeof(IMAGEDATA));
+	//imagedata = (IMAGEDATA*)malloc(width * height);
+	for (int i = 0; i < height; ++i) {
+		for (int j = 0; j < width; ++j) {
+			(*(imagedata + i * width + j)).blue = 0;
+			(*(imagedata + i * width + j)).green = 0;
+			(*(imagedata + i * width + j)).blue = 0;
+		}
+	}
+	//fseek(fpi, 54, SEEK_SET);+b+yy
+	fread(imagedata, sizeof(struct tagIMAGEDATA) * width, height, fpi);
+
+	//设置最大16位的加密位
+	char crypto[65535] = { 0 };
+	cout << "请输入加密字符串: ";
+	//cin >> crypto;
+	crypto[0] = '1';
+	crypto[1] = '1';
+	crypto[2] = '1';
+	BYTE shift_bits = 0x00;
+	int j = 0;
+	int string_len = strlen(crypto);
+
+	//1个字符要8个BYTE, 也就是8/3 = 2.667个颜色
+	for (int i = 0;; ++i) {
+		imagedata[i].blue = bitManipulation(imagedata[i].blue, crypto[j], shift_bits);
+		if (++shift_bits == 8) {
+			shift_bits = 0;
+			if (crypto[++j] == '\0')
+				break;
+		}
+		imagedata[i].green = bitManipulation(imagedata[i].green, crypto[j], shift_bits);
+		if (++shift_bits == 8) {
+			shift_bits = 0;
+			if (crypto[++j] == '\0')
+				break;
+		}
+		imagedata[i].red = bitManipulation(imagedata[i].red, crypto[j], shift_bits);
+		if (++shift_bits == 8) {
+			shift_bits = 0;
+			if (crypto[++j] == '\0')
+				break;
+		}
+	}
+	fclose(fpi);
+	return 0;
+}
+
+
+
+int main() {
+	char strFile[LENGTH_NAME_BMP];
+	IMAGEDATA *imagedata = nullptr;
+	IMAGEDATA *imagedataRot = nullptr;
+
+/*
+	cout << "请输入所要读取文件名：" << endl;
+	cin >> strFile;*/
+	//rotateBMPimage(strFile, imagedata, imagedataRot);
+	lowestBitReplace("bkg.bmp", "bkg_cpto.bmp", imagedata);
+
+
 	getchar();
 	getchar();
 }
