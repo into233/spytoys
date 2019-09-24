@@ -5,11 +5,11 @@
 #define _CRT_SECURE_NO_WARNINGS
 #define CHAR_NUM 16
 
-using namespace std;
-
 BITMAPFILEHEADER strHead;
 RGBQUAD strPla[256];
 BITMAPINFOHEADER strInfo;
+
+using namespace std;
 
 
 void showBmpHead(BITMAPFILEHEADER pBmpHead) {
@@ -226,7 +226,9 @@ int bitManipulation_reverse(unsigned char n, unsigned char m, int i) {
 	}
 }
 
-int lowestBitReplace(char origin_Filename[], char output_filename[], IMAGEDATA *imagedata) {
+//按字节打开IMAGEDATA  n/m
+int lowestBitReplace_plus(char origin_Filename[], char output_filename[], IMAGEDATA *imagedata, int ndm) {
+
 	FILE *fpi = fopen(origin_Filename, "rb");
 	FILE *fpw = nullptr;
 	int width, height;
@@ -244,18 +246,16 @@ int lowestBitReplace(char origin_Filename[], char output_filename[], IMAGEDATA *
 	height = strInfo.biHeight;
 
 	imagedata = (IMAGEDATA*)malloc(width * height * sizeof(IMAGEDATA));
-	//imagedata = (IMAGEDATA*)malloc(width * height);
+	BYTE* B_imagedata = (BYTE*)imagedata;
+
 	for (int i = 0; i < height; ++i) {
 		for (int j = 0; j < width; ++j) {
 			(*(imagedata + i * width + j)).blue = 0;
 			(*(imagedata + i * width + j)).green = 0;
-			(*(imagedata + i * width + j)).blue = 0;
+			(*(imagedata + i * width + j)).red = 0;
 		}
 	}
-	//fseek(fpi, 54, SEEK_SET);+b+yy
 	fread(imagedata, sizeof(struct tagIMAGEDATA) * width, height, fpi);
-
-	//设置最大16位的加密位
 	char crypto[CHAR_NUM * 16] = { 0 };
 	cout << "请输入加密字符串: ";
 	cin.getline(crypto, CHAR_NUM * 16);
@@ -263,30 +263,13 @@ int lowestBitReplace(char origin_Filename[], char output_filename[], IMAGEDATA *
 	int j = 0;
 	int string_len = strlen(crypto);
 
-	//数量
-	for (int i = 0; i < CHAR_NUM; ++i) {
-		imagedata[i].blue = bitManipulation(imagedata[i].blue, string_len, shift_bits++);
-		if (shift_bits == CHAR_NUM) {
-			break;
-		}
-		imagedata[i].green = bitManipulation(imagedata[i].green, string_len, shift_bits++);
-		imagedata[i].red = bitManipulation(imagedata[i].red, string_len, shift_bits++);
+	//字符的数量
+	for (int i = 0; i < CHAR_NUM; i++) {
+		B_imagedata[i * ndm] = bitManipulation(B_imagedata[i * ndm], string_len, shift_bits++);
 	}
 	shift_bits = 0x00;
 	for (int i = CHAR_NUM;; ++i) {
-		imagedata[i].blue = bitManipulation(imagedata[i].blue, crypto[j], shift_bits);
-		if (++shift_bits == 8) {
-			shift_bits = 0;
-			if (crypto[++j] == '\0')
-				break;
-		}
-		imagedata[i].green = bitManipulation(imagedata[i].green, crypto[j], shift_bits);
-		if (++shift_bits == 8) {
-			shift_bits = 0;
-			if (crypto[++j] == '\0')
-				break;
-		}
-		imagedata[i].red = bitManipulation(imagedata[i].red, crypto[j], shift_bits);
+		B_imagedata[i * ndm] = bitManipulation(B_imagedata[i * ndm], crypto[j], shift_bits);
 		if (++shift_bits == 8) {
 			shift_bits = 0;
 			if (crypto[++j] == '\0')
@@ -298,7 +281,82 @@ int lowestBitReplace(char origin_Filename[], char output_filename[], IMAGEDATA *
 		return 1;
 	}
 	return 0;
+
 }
+
+//int lowestBitReplace(char origin_Filename[], char output_filename[], IMAGEDATA *imagedata) {
+//	FILE *fpi = fopen(origin_Filename, "rb");
+//	FILE *fpw = nullptr;
+//	int width, height;
+//	if (fpi != NULL) {
+//		readImageData(fpi);
+//		showBmpInfoHead(strInfo);
+//		showBmpHead(strHead);
+//	}
+//	else {
+//		cout << "file open error!" << endl;
+//		return -1;
+//	}
+//	initPla(fpi);
+//	width = strInfo.biWidth;
+//	height = strInfo.biHeight;
+//
+//	imagedata = (IMAGEDATA*)malloc(width * height * sizeof(IMAGEDATA));
+//	//imagedata = (IMAGEDATA*)malloc(width * height);
+//	for (int i = 0; i < height; ++i) {
+//		for (int j = 0; j < width; ++j) {
+//			(*(imagedata + i * width + j)).blue = 0;
+//			(*(imagedata + i * width + j)).green = 0;
+//			(*(imagedata + i * width + j)).blue = 0;
+//		}
+//	}
+//	//fseek(fpi, 54, SEEK_SET);+b+yy
+//	fread(imagedata, sizeof(struct tagIMAGEDATA) * width, height, fpi);
+//
+//	//设置最大16位的加密位
+//	char crypto[CHAR_NUM * 16] = { 0 };
+//	cout << "请输入加密字符串: ";
+//	cin.getline(crypto, CHAR_NUM * 16);
+//	BYTE shift_bits = 0x00;
+//	int j = 0;
+//	int string_len = strlen(crypto);
+//
+//	//数量
+//	for (int i = 0; i < CHAR_NUM; ++i) {
+//		imagedata[i].blue = bitManipulation(imagedata[i].blue, string_len, shift_bits++);
+//		if (shift_bits == CHAR_NUM) {
+//			break;
+//		}
+//		imagedata[i].green = bitManipulation(imagedata[i].green, string_len, shift_bits++);
+//		imagedata[i].red = bitManipulation(imagedata[i].red, string_len, shift_bits++);
+//	}
+//	shift_bits = 0x00;
+//	for (int i = CHAR_NUM;; ++i) {
+//		imagedata[i].blue = bitManipulation(imagedata[i].blue, crypto[j], shift_bits);
+//		if (++shift_bits == 8) {
+//			shift_bits = 0;
+//			if (crypto[++j] == '\0')
+//				break;
+//		}
+//		imagedata[i].green = bitManipulation(imagedata[i].green, crypto[j], shift_bits);
+//		if (++shift_bits == 8) {
+//			shift_bits = 0;
+//			if (crypto[++j] == '\0')
+//				break;
+//		}
+//		imagedata[i].red = bitManipulation(imagedata[i].red, crypto[j], shift_bits);
+//		if (++shift_bits == 8) {
+//			shift_bits = 0;
+//			if (crypto[++j] == '\0')
+//				break;
+//		}
+//	}
+//	fclose(fpi);
+//	if (savePic(fpw, output_filename, imagedata)) {
+//		return 1;
+//	}
+//	return 0;
+//}
 
 int read_encript_pic(char origin_Filename[], IMAGEDATA *imagedata) {
 	FILE *fpi = fopen(origin_Filename, "rb");
@@ -337,7 +395,7 @@ int read_encript_pic(char origin_Filename[], IMAGEDATA *imagedata) {
 	string_len = strlen(crypto);
 
 	//数量
-	for (int i = 0; i < CHAR_NUM; ++i) {
+	for (int i = 0; ; ++i) {
 		string_len = bitManipulation_reverse(string_len, imagedata[i].blue, shift_bits++);
 		if (shift_bits == CHAR_NUM) {
 			break;
@@ -348,13 +406,8 @@ int read_encript_pic(char origin_Filename[], IMAGEDATA *imagedata) {
 	shift_bits = 0x00;
 
 	//1个字符要8个BYTE, 也就是8/3 = 2.667个颜色
-	for (int i = CHAR_NUM;; ++i) {
-		crypto[j] = bitManipulation_reverse(crypto[j], imagedata[i].blue, shift_bits);
-		if (++shift_bits == 8) {
-			shift_bits = 0;
-			if (++j >= string_len)
-				break;
-		}
+	for (int i = 6;; ++i) {
+		
 		crypto[j] = bitManipulation_reverse(crypto[j], imagedata[i].green, shift_bits);
 		if (++shift_bits == 8) {
 			shift_bits = 0;
@@ -367,12 +420,73 @@ int read_encript_pic(char origin_Filename[], IMAGEDATA *imagedata) {
 			if (++j >= string_len)
 				break;
 		}
+		crypto[j] = bitManipulation_reverse(crypto[++j], imagedata[i].blue, shift_bits);
+		if (++shift_bits == 8) {
+			shift_bits = 0;
+			if (++j >= string_len)
+				break;
+		}
 	}
 	cout << "加密后的密文为:" << crypto << endl;
 	fclose(fpi);
 	return 0;
 }
+int read_encript_pic_plus(char origin_Filename[], IMAGEDATA *imagedata, int ndim) {
+	FILE *fpi = fopen(origin_Filename, "rb");
+	int width, height;
+	if (fpi != NULL) {
+		readImageData(fpi);
+		showBmpInfoHead(strInfo);
+		showBmpHead(strHead);
+	}
+	else {
+		cout << "file open error!" << endl;
+		return -1;
+	}
+	initPla(fpi);
+	width = strInfo.biWidth;
+	height = strInfo.biHeight;
 
+	imagedata = (IMAGEDATA*)malloc(width * height * sizeof(IMAGEDATA));
+	BYTE* B_imagedata = (BYTE*)imagedata;
+	for (int i = 0; i < height; ++i) {
+		for (int j = 0; j < width; ++j) {
+			(*(imagedata + i * width + j)).blue = 0;
+			(*(imagedata + i * width + j)).green = 0;
+			(*(imagedata + i * width + j)).blue = 0;
+		}
+	}
+	//fseek(fpi, 54, SEEK_SET);+b+yy
+	fread(imagedata, sizeof(struct tagIMAGEDATA) * width, height, fpi);
+
+	//设置最大16位的加密位
+	char crypto[65535] = { 0 };
+	int string_len = 0;
+
+	BYTE shift_bits = 0x00;
+	int j = 0;
+	string_len = strlen(crypto);
+
+	//数量
+	for (int i = 0;i < CHAR_NUM ; ++i) {
+		string_len = bitManipulation_reverse(string_len, B_imagedata[i * ndim], shift_bits++);
+	}
+	cout << "读取密文长度为:" << string_len << endl;
+	shift_bits = 0x00;
+
+	for (int i = CHAR_NUM;; ++i) {
+		crypto[j] = bitManipulation_reverse(crypto[j], B_imagedata[i * ndim], shift_bits);
+		if (++shift_bits == 8) {
+			shift_bits = 0;
+			j++;
+			if (j >= string_len)
+				break;
+		}
+	}
+	cout << "加密后的密文为:" << crypto << endl;
+	fclose(fpi);
+	return 0;
+}
 
 
 int main() {
@@ -385,7 +499,8 @@ int main() {
 	cin >> strFile;*/
 	//rotateBMPimage(strFile, imagedata, imagedataRot);
 	//lowestBitReplace("bkg.bmp", "bkg_cpto.bmp", imagedata);
-	read_encript_pic("bkg_cpto.bmp", imagedata);
+	lowestBitReplace_plus("bkg.bmp", "bkg_cpto_plus.bmp", imagedata, 1);
+	read_encript_pic_plus("bkg_cpto_plus.bmp", imagedata, 1);
 
 	getchar();
 	getchar();
