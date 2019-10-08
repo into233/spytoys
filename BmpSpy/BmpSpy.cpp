@@ -499,8 +499,9 @@ int main() {
 	cin >> strFile;*/
 	//rotateBMPimage(strFile, imagedata, imagedataRot);
 	//lowestBitReplace("bkg.bmp", "bkg_cpto.bmp", imagedata);
-	lowestBitReplace_plus("bkg.bmp", "bkg_cpto_plus.bmp", imagedata, 1);
-	read_encript_pic_plus("bkg_cpto_plus.bmp", imagedata, 1);
+	lowestBitReplace_plus("infoKoala.bmp", "infoKoala__2.bmp", imagedata, 1);
+	//read_encript_pic_plus("bkg_cpto_plus.bmp", imagedata, 1);
+	read_encript_pic_plus("infoKoala2.bmp", imagedata, 1);
 
 	getchar();
 	getchar();

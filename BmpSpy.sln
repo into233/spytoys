@@ -1,28 +1,47 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 14
-VisualStudioVersion = 14.0.25420.1
+# Visual Studio 15
+VisualStudioVersion = 15.0.28307.645
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "BmpSpy", "BmpSpy\BmpSpy.vcxproj", "{FED1736D-68B3-4C87-BE69-2EC4E310386D}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "jpegRWER", "jpegRWER\jpegRWER.vcxproj", "{8A6D8A5A-595A-45B7-B453-88869467D81B}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
 		Debug|x64 = Debug|x64
 		Debug|x86 = Debug|x86
+		Release|Any CPU = Release|Any CPU
 		Release|x64 = Release|x64
 		Release|x86 = Release|x86
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{FED1736D-68B3-4C87-BE69-2EC4E310386D}.Debug|Any CPU.ActiveCfg = Debug|Win32
 		{FED1736D-68B3-4C87-BE69-2EC4E310386D}.Debug|x64.ActiveCfg = Debug|x64
 		{FED1736D-68B3-4C87-BE69-2EC4E310386D}.Debug|x64.Build.0 = Debug|x64
 		{FED1736D-68B3-4C87-BE69-2EC4E310386D}.Debug|x86.ActiveCfg = Debug|Win32
 		{FED1736D-68B3-4C87-BE69-2EC4E310386D}.Debug|x86.Build.0 = Debug|Win32
+		{FED1736D-68B3-4C87-BE69-2EC4E310386D}.Release|Any CPU.ActiveCfg = Release|Win32
 		{FED1736D-68B3-4C87-BE69-2EC4E310386D}.Release|x64.ActiveCfg = Release|x64
 		{FED1736D-68B3-4C87-BE69-2EC4E310386D}.Release|x64.Build.0 = Release|x64
 		{FED1736D-68B3-4C87-BE69-2EC4E310386D}.Release|x86.ActiveCfg = Release|Win32
 		{FED1736D-68B3-4C87-BE69-2EC4E310386D}.Release|x86.Build.0 = Release|Win32
+		{8A6D8A5A-595A-45B7-B453-88869467D81B}.Debug|Any CPU.ActiveCfg = Debug|Win32
+		{8A6D8A5A-595A-45B7-B453-88869467D81B}.Debug|x64.ActiveCfg = Debug|x64
+		{8A6D8A5A-595A-45B7-B453-88869467D81B}.Debug|x64.Build.0 = Debug|x64
+		{8A6D8A5A-595A-45B7-B453-88869467D81B}.Debug|x86.ActiveCfg = Debug|Win32
+		{8A6D8A5A-595A-45B7-B453-88869467D81B}.Debug|x86.Build.0 = Debug|Win32
+		{8A6D8A5A-595A-45B7-B453-88869467D81B}.Release|Any CPU.ActiveCfg = Release|Win32
+		{8A6D8A5A-595A-45B7-B453-88869467D81B}.Release|x64.ActiveCfg = Release|x64
+		{8A6D8A5A-595A-45B7-B453-88869467D81B}.Release|x64.Build.0 = Release|x64
+		{8A6D8A5A-595A-45B7-B453-88869467D81B}.Release|x86.ActiveCfg = Release|Win32
+		{8A6D8A5A-595A-45B7-B453-88869467D81B}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {C395DD4C-45F5-4584-867E-E3D3F75DB544}
 	EndGlobalSection
 EndGlobal
